@@ -9,6 +9,7 @@ from kafka import KafkaConsumer
 from pymilvus import (
     connections, Collection
 )
+from pymilvus.orm.pymilvus_orm.exceptions import SchemaNotReadyException
 
 verbose = False
 kafka_topic = 'milvus_ingest'
@@ -67,6 +68,11 @@ def ingest():
                     consumer.commit()
         except (JSONDecodeError, ValueError) as e:
             print(e)
+            if message:
+                print("I am error", message)
+        except SchemaNotReadyException as e:
+            print(e)
+            df.drop(df.index, inplace=True)
             if message:
                 print("I am error", message)
 
