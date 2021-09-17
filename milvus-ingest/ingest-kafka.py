@@ -45,10 +45,12 @@ def ingest():
     print(f"\nGet collection entities...")
     print(collection.num_entities)
     df = pandas.DataFrame(data=None, columns=["count", "random_value", "float_vector"])
-    try:
-        while True:
+
+    while True:
+        try:
             for message in consumer:
                 msg = json.loads(message.value.decode())
+                print(type(msg))
                 df1 = pandas.DataFrame([msg], columns=["count", "random_value", "float_vector"])
                 df = df.append(df1, ignore_index=True)
                 print("%s:%d:%d: key=%s value=%s" % (message.topic, message.partition,
@@ -57,15 +59,14 @@ def ingest():
                 print(len(df))
                 if len(df) >= milvus_ingest_batch:
                     ingestdata(df, collection)
-                consumer.commit()
+                    consumer.commit()
 
-            if len(df) > 0:
-                print("等待时间超过，consumer_timeout_ms,集合数据入库")
-                ingestdata(df, collection)
-                consumer.commit()
-    except JSONDecodeError:
-        print(message)
-        # consumer.commit()
+                if len(df) > 0:
+                    print("等待时间超过，consumer_timeout_ms,集合数据入库")
+                    ingestdata(df, collection)
+                    consumer.commit()
+        except (JSONDecodeError, ValueError):
+            print("I am error", message)
 
 
 def ingestdata(df, collection):
