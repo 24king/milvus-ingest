@@ -1,7 +1,6 @@
 import getopt
 import sys
 import json
-import random
 from json.decoder import JSONDecodeError
 
 import pandas
@@ -44,14 +43,15 @@ def ingest():
     print(collection.schema)
     print(f"\nGet collection entities...")
     print(collection.num_entities)
-    df = pandas.DataFrame(data=None, columns=["count", "random_value", "float_vector"])
+
+    df = pandas.DataFrame(data=None, columns=[dep.name for dep in collection.schema.fields])
 
     while True:
         try:
             for message in consumer:
                 msg = json.loads(message.value.decode())
-                print(type(msg))
-                df1 = pandas.DataFrame([msg], columns=["count", "random_value", "float_vector"])
+                print("output msg", type(msg), msg)
+                df1 = pandas.DataFrame([msg], columns=[dep.name for dep in collection.schema.fields])
                 df = df.append(df1, ignore_index=True)
                 print("%s:%d:%d: key=%s value=%s" % (message.topic, message.partition,
                                                      message.offset, message.key,
@@ -65,8 +65,10 @@ def ingest():
                     print("等待时间超过，consumer_timeout_ms,集合数据入库")
                     ingestdata(df, collection)
                     consumer.commit()
-        except (JSONDecodeError, ValueError):
-            print("I am error", message)
+        except (JSONDecodeError, ValueError) as e:
+            print(e)
+            if message:
+                print("I am error", message)
 
 
 def ingestdata(df, collection):
