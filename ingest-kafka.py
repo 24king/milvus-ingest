@@ -42,7 +42,7 @@ def ingest():
     milvus.load_collection(milvus_collection_name)
     collection = Collection(milvus_collection_name)
     print(collection.schema)
-    print(f"\nGet collection entities...")
+    print("\nGet collection entities...")
     print(collection.num_entities)
 
     df = pandas.DataFrame(data=None, columns=[dep.name for dep in collection.schema.fields])
@@ -57,15 +57,13 @@ def ingest():
                 print("%s:%d:%d: key=%s value=%s" % (message.topic, message.partition,
                                                      message.offset, message.key,
                                                      message.value))
-                print(len(df))
                 if len(df) >= milvus_ingest_batch:
                     ingestdata(df, collection)
                     consumer.commit()
-
-                if len(df) > 0:
-                    print("等待时间超过，consumer_timeout_ms,集合数据入库")
-                    ingestdata(df, collection)
-                    consumer.commit()
+            if len(df) > 0:
+                print("等待时间超过，consumer_timeout_ms,集合数据入库")
+                ingestdata(df, collection)
+                consumer.commit()
         except (JSONDecodeError, ValueError) as e:
             print(e)
             if message:
@@ -78,9 +76,8 @@ def ingest():
 
 
 def ingestdata(df, collection):
-    print(df)
-    collection.insert(df)
-    print(df)
+    future = collection.insert(df)
+    print("the insert count", future.insert_count)
     print(collection.num_entities)
     # 删除dataframe
     df.drop(df.index, inplace=True)
